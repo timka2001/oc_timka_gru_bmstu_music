@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "398070883382",
+    "project_id": "databasebmstu",
+    "storage_bucket": "databasebmstu.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:398070883382:android:53153d8a025326dc40e497",
+        "android_client_info": {
+          "package_name": "com.example.oc_timka_gru_bmstu_music"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "398070883382-t4e44beqjevscj5tflsoq1v9oejshemj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDthlwgrBYAl8Yu7d-mtj7xWmpowpuaEPo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "398070883382-t4e44beqjevscj5tflsoq1v9oejshemj.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
