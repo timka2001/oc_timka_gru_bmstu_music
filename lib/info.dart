@@ -19,25 +19,29 @@ class Musics {
     required this.artsit,
     required this.trackName,
     required this.trackImage,
-    required this.urlMusic,
+    required this.musicUrl,
+    required this.name,
   });
 
   List<String> artsit;
   List<String> trackName;
   List<String> trackImage;
-  List<String> urlMusic;
+  List<String> musicUrl;
+  int name;
 
   factory Musics.fromJson(Map<String, dynamic> json) => Musics(
-        artsit: List<String>.from(json["artsit"].map((x) => x)),
+        artsit: List<String>.from(json["artist"].map((x) => x)),
         trackName: List<String>.from(json["trackName"].map((x) => x)),
         trackImage: List<String>.from(json["trackImage"].map((x) => x)),
-        urlMusic: List<String>.from(json["urlMusic"].map((x) => x)),
+        musicUrl: List<String>.from(json["musicUrl"].map((x) => x)),
+        name: json["name"],
       );
 
   Map<String, dynamic> toJson() => {
-        "artsit": List<dynamic>.from(artsit.map((x) => x)),
+        "artist": List<dynamic>.from(artsit.map((x) => x)),
         "trackName": List<dynamic>.from(trackName.map((x) => x)),
         "trackImage": List<dynamic>.from(trackImage.map((x) => x)),
-        "urlMusic": List<dynamic>.from(urlMusic.map((x) => x)),
+        "musicUrl": List<dynamic>.from(musicUrl.map((x) => x)),
+        "name": name,
       };
 }
