@@ -1,8 +1,15 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:oc_timka_gru_bmstu_music/info.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:open_file/open_file.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,6 +47,25 @@ class MusicAdd {
   List<String> trackImage = [];
 }
 
+List<String> addMusicsUrl = [];
+
+class Storage {
+  final storage = FirebaseStorage.instance;
+  Future<void> uploadFile(String filePath, String fileName) async {
+    File file = File(filePath);
+    try {
+      await storage.ref(fileName).putFile(file);
+    } on FirebaseException catch (e) {
+      print(e);
+    }
+  }
+
+  Future<String> getUrl(String fileName) async {
+    String add = await storage.ref(fileName).getDownloadURL();
+    return add;
+  }
+}
+
 class _MyStatefulWidgetState extends State<MyStatefulWidget>
     with SingleTickerProviderStateMixin {
   final db_Mysics = FirebaseFirestore.instance;
@@ -49,8 +75,8 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget>
   int? countMy;
   int? countMyMusic;
   MusicAdd musicAdd = MusicAdd();
-  Map<String, dynamic>? infoMusic;
-  Map<String, dynamic>? infoMyMusic;
+  MusicAdd musicAddCollection = MusicAdd();
+  final Storage storange = Storage();
   List<Map<String, String>> _allUsers = [];
   List<Map<String, dynamic>> _foundUsers = [];
   Map<String, dynamic> data = {};
@@ -652,7 +678,81 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget>
                                                   });
                                             });
                                       });
-                                }))
+                                })),
+                        ElevatedButton(
+                            onPressed: () async {
+                              final result = await FilePicker.platform
+                                  .pickFiles(allowMultiple: true);
+
+                              if (result == null) {
+                                return null;
+                              }
+                              for (int i = 0; i < data["musics"]["name"]; i++) {
+                                musicAddCollection.artist
+                                    .add(data["musics"]["artist"][i]);
+                                musicAddCollection.musicUrl
+                                    .add(data["musics"]["musicUrl"][i]);
+                                musicAddCollection.trackImage
+                                    .add(data["musics"]["trackImage"][i]);
+                                musicAddCollection.trackName
+                                    .add(data["musics"]["trackName"][i]);
+                              }
+                              print(
+                                  "musicAddCollection: ${musicAddCollection.artist}");
+                              for (int i = 0; i < result.files.length; i++) {
+                                print("result.files.length: ${i}");
+                                storange
+                                    .uploadFile(result.files[i].path ?? "",
+                                        result.files[i].name)
+                                    .then((value) => storange
+                                            .getUrl(result.files[i].name)
+                                            .then((String value) {
+                                          addMusicsUrl.add(value);
+                                          print(
+                                              'addMusicsUrl: ${addMusicsUrl[i]}');
+                                          musicAddCollection.artist.add(
+                                              "artist ${data["musics"]["name"] + 1 + i}");
+                                          musicAddCollection.musicUrl
+                                              .add(addMusicsUrl[i]);
+                                          musicAddCollection.trackImage.add(
+                                              data["musics"]["trackImage"][i]);
+                                          musicAddCollection.trackName.add(
+                                              "trackName ${data["musics"]["name"] + 1 + i}");
+                                          final my = Musics(
+                                            artsit: musicAddCollection.artist,
+                                            trackName:
+                                                musicAddCollection.trackName,
+                                            trackImage:
+                                                musicAddCollection.trackImage,
+                                            musicUrl:
+                                                musicAddCollection.musicUrl,
+                                            name: musicAddCollection
+                                                .musicUrl.length,
+                                          );
+                                          final home = HomeAudio(musics: my);
+                                          final docRef = db
+                                              .collection("user")
+                                              .withConverter(
+                                                fromFirestore:
+                                                    (snapshot, options) =>
+                                                        HomeAudio.fromJson(
+                                                            snapshot.data()!),
+                                                toFirestore:
+                                                    (HomeAudio home, options) =>
+                                                        home.toJson(),
+                                              )
+                                              .doc("My musics");
+                                          docRef.set(home);
+                                        }));
+                              }
+
+                              /** 
+                                  storange
+                                  .uploadFile(path ?? "", name)
+                                  .then((value) => print("Done"));
+                              */
+                            },
+                            child: Text('Pick File')),
                       ]));
                 }
               },
@@ -686,7 +786,7 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget>
                     }
                   }
                 }
-                if (data.isEmpty) {
+                if (data_MY.isEmpty) {
                   return Center(child: Text("Name"));
                 } else {
                   return Scaffold(
