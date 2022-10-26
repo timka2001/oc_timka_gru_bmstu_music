@@ -45,3 +45,21 @@ class Musics {
         "name": name,
       };
 }
+
+class TrackNameAdd {
+  List<String> trackName;
+  int name;
+    TrackNameAdd({
+    required this.trackName,
+    required this.name,
+  });
+  factory TrackNameAdd.fromJson(Map<String, dynamic> json) => TrackNameAdd(  
+        trackName: List<String>.from(json["trackName"].map((x) => x)),
+        name: json["name"],
+      );
+
+  Map<String, dynamic> toJson() => {
+        "trackName": List<dynamic>.from(trackName.map((x) => x)),
+        "name": name,
+      };
+}

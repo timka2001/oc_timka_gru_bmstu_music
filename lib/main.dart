@@ -81,6 +81,7 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget>
   List<Map<String, dynamic>> _foundUsers = [];
   Map<String, dynamic> data = {};
   Map<String, dynamic> data_MY = {};
+  Map<String, dynamic> data_Track = {};
   bool active = false;
   final audioPlayer = AudioPlayer();
   bool isPlaying = false;
@@ -91,6 +92,7 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget>
   late TabController _tabController;
   int _selectedIndex = 0;
   List<String> bottomNavigationBar_ = ["Home", "Business"];
+  List<String> addMusicsTrack = [];
 
   void _onItemTapped(int index) {
     setState(() {
@@ -335,16 +337,26 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget>
                     return Center(child: Text("Users"));
                   } else {
                     data = snapshot.data!.data() as Map<String, dynamic>;
-                    for (int i = 0; i < lenghtMusic; i++) {
-                      if (_allUsers.length < 16) {
-                        _allUsers.add({
-                          "artist": data["musics"]["artist"][i],
-                          "musicUrl": data["musics"]["musicUrl"][i],
-                          "trackName": data["musics"]["trackName"][i],
-                          "trackImage": data["musics"]["trackImage"][i]
-                        });
-                      }
+                    _allUsers.clear();
+                    for (int i = 0; i < data["musics"]["name"]; i++) {
+                      _allUsers.add({
+                        "artist": data["musics"]["artist"][i],
+                        "musicUrl": data["musics"]["musicUrl"][i],
+                        "trackName": data["musics"]["trackName"][i],
+                        "trackImage": data["musics"]["trackImage"][i]
+                      });
                     }
+                    final docRef = db_Mysics.collection("user").doc("Track");
+                    docRef.get().then((DocumentSnapshot doc) {
+                      data_Track = doc.data() as Map<String, dynamic>;
+                      if (data_Track.isNotEmpty) {
+                        addMusicsTrack.clear();
+                        for (int i = 0; i < data_Track["name"]; i++) {
+                          addMusicsTrack.add(data_Track["trackName"][i]);
+                        }
+                        print("addMusicsTrack: $addMusicsTrack");
+                      }
+                    }, onError: (e) => print("Error getting document: $e"));
                     if (_foundUsers.isEmpty) {
                       _foundUsers = _allUsers;
                     }
@@ -687,63 +699,210 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget>
                               if (result == null) {
                                 return null;
                               }
-                              for (int i = 0; i < data["musics"]["name"]; i++) {
-                                musicAddCollection.artist
-                                    .add(data["musics"]["artist"][i]);
-                                musicAddCollection.musicUrl
-                                    .add(data["musics"]["musicUrl"][i]);
-                                musicAddCollection.trackImage
-                                    .add(data["musics"]["trackImage"][i]);
-                                musicAddCollection.trackName
-                                    .add(data["musics"]["trackName"][i]);
+                              if (!active) {
+                                active = true;
+                                for (int i = 0;
+                                    i < data["musics"]["name"];
+                                    i++) {
+                                  musicAddCollection.artist
+                                      .add(data["musics"]["artist"][i]);
+                                  musicAddCollection.musicUrl
+                                      .add(data["musics"]["musicUrl"][i]);
+                                  musicAddCollection.trackImage
+                                      .add(data["musics"]["trackImage"][i]);
+                                  musicAddCollection.trackName
+                                      .add(data["musics"]["trackName"][i]);
+                                  print(
+                                      "musicAddCollection: ${musicAddCollection.artist}");
+                                }
                               }
-                              print(
-                                  "musicAddCollection: ${musicAddCollection.artist}");
-                              for (int i = 0; i < result.files.length; i++) {
-                                print("result.files.length: ${i}");
-                                storange
-                                    .uploadFile(result.files[i].path ?? "",
-                                        result.files[i].name)
-                                    .then((value) => storange
-                                            .getUrl(result.files[i].name)
-                                            .then((String value) {
-                                          addMusicsUrl.add(value);
+                              if (addMusicsTrack.isEmpty) {
+                                for (int i = 0; i < result.files.length; i++) {
+                                  addMusicsTrack.add(result.files[i].name);
+                                  print("result.files.length: ${i}");
+                                  if (result.files[i].path!.isNotEmpty &&
+                                      result.files[i].name.isNotEmpty) {
+                                    File file = File(result.files[i].path!);
+                                    print(
+                                        "result.files.path: ${result.files[i].path!}");
+                                    print(
+                                        "result.files.name: ${result.files[i].name}");
+                                    await FirebaseStorage.instance
+                                        .ref(result.files[i].name)
+                                        .putFile(file)
+                                        .then((taskSnapshot) {
+                                      print("task done");
+                                      if (taskSnapshot.state ==
+                                          TaskState.success) {
+                                        FirebaseStorage.instance
+                                            .ref(result.files[i].name)
+                                            .getDownloadURL()
+                                            .then((url) {
                                           print(
-                                              'addMusicsUrl: ${addMusicsUrl[i]}');
-                                          musicAddCollection.artist.add(
-                                              "artist ${data["musics"]["name"] + 1 + i}");
-                                          musicAddCollection.musicUrl
-                                              .add(addMusicsUrl[i]);
-                                          musicAddCollection.trackImage.add(
-                                              data["musics"]["trackImage"][i]);
-                                          musicAddCollection.trackName.add(
-                                              "trackName ${data["musics"]["name"] + 1 + i}");
-                                          final my = Musics(
-                                            artsit: musicAddCollection.artist,
-                                            trackName:
-                                                musicAddCollection.trackName,
-                                            trackImage:
-                                                musicAddCollection.trackImage,
-                                            musicUrl:
-                                                musicAddCollection.musicUrl,
-                                            name: musicAddCollection
-                                                .musicUrl.length,
-                                          );
-                                          final home = HomeAudio(musics: my);
-                                          final docRef = db
-                                              .collection("user")
-                                              .withConverter(
-                                                fromFirestore:
-                                                    (snapshot, options) =>
+                                              "Here is the URL of Image $url");
+
+                                          addMusicsUrl.add(url);
+                                          if (addMusicsUrl[i].isNotEmpty) {
+                                            print(
+                                                'addMusicsUrl: ${addMusicsUrl[i]}');
+                                            musicAddCollection.artist.add(
+                                                "artist ${data["musics"]["name"] + 1}");
+                                            musicAddCollection.musicUrl
+                                                .add(addMusicsUrl[i]);
+                                            musicAddCollection.trackImage.add(
+                                                data["musics"]["trackImage"]
+                                                    [i]);
+                                            musicAddCollection.trackName.add(
+                                                "trackName ${data["musics"]["name"] + 1}");
+                                            final my = Musics(
+                                              artsit: musicAddCollection.artist,
+                                              trackName:
+                                                  musicAddCollection.trackName,
+                                              trackImage:
+                                                  musicAddCollection.trackImage,
+                                              musicUrl:
+                                                  musicAddCollection.musicUrl,
+                                              name: musicAddCollection
+                                                  .musicUrl.length,
+                                            );
+                                            final home = HomeAudio(musics: my);
+                                            final docRef = db
+                                                .collection("user")
+                                                .withConverter(
+                                                  fromFirestore:
+                                                      (snapshot, options) =>
+                                                          HomeAudio.fromJson(
+                                                              snapshot.data()!),
+                                                  toFirestore: (HomeAudio home,
+                                                          options) =>
+                                                      home.toJson(),
+                                                )
+                                                .doc("Musics");
+                                            docRef.set(home);
+                                          }
+                                        });
+                                      }
+                                    });
+                                  }
+                                }
+                                final myTrack = TrackNameAdd(
+                                  trackName: addMusicsTrack,
+                                  name: addMusicsTrack.length,
+                                );
+                                final docRef = db
+                                    .collection("user")
+                                    .withConverter(
+                                      fromFirestore: (snapshot, options) =>
+                                          TrackNameAdd.fromJson(
+                                              snapshot.data()!),
+                                      toFirestore:
+                                          (TrackNameAdd home, options) =>
+                                              home.toJson(),
+                                    )
+                                    .doc("Track");
+                                docRef.set(myTrack);
+                                //set
+                              } else {
+                                for (int i = 0; i < result.files.length; i++) {
+                                  bool isActive = true;
+                                  for (int j = 0;
+                                      j < addMusicsTrack.length;
+                                      j++) {
+                                    if (result.files[i].name ==
+                                        addMusicsTrack[j]) {
+                                      isActive = false;
+                                      print("isActive FOR: ${isActive}");
+                                    }
+                                  }
+                                  print("isActive IF: ${isActive}");
+                                  if (isActive) {
+                                    addMusicsTrack.add(result.files[i].name);
+                                    print("result.files.length: ${i}");
+                                    if (result.files[i].path!.isNotEmpty &&
+                                        result.files[i].name.isNotEmpty) {
+                                      File file = File(result.files[i].path!);
+                                      print(
+                                          "result.files.path: ${result.files[i].path!}");
+                                      print(
+                                          "result.files.name: ${result.files[i].name}");
+                                      await FirebaseStorage.instance
+                                          .ref(result.files[i].name)
+                                          .putFile(file)
+                                          .then((taskSnapshot) {
+                                        print("task done");
+                                        if (taskSnapshot.state ==
+                                            TaskState.success) {
+                                          FirebaseStorage.instance
+                                              .ref(result.files[i].name)
+                                              .getDownloadURL()
+                                              .then((url) {
+                                            print(
+                                                "Here is the URL of Image $url");
+
+                                            addMusicsUrl.add(url);
+                                            if (addMusicsUrl[i].isNotEmpty) {
+                                              print(
+                                                  'addMusicsUrl: ${addMusicsUrl[i]}');
+                                              musicAddCollection.artist.add(
+                                                  "artist ${data["musics"]["name"] + 1}");
+                                              musicAddCollection.musicUrl
+                                                  .add(addMusicsUrl[i]);
+                                              musicAddCollection.trackImage.add(
+                                                  data["musics"]["trackImage"]
+                                                      [i]);
+                                              musicAddCollection.trackName.add(
+                                                  "trackName ${data["musics"]["name"] + 1}");
+                                              final my = Musics(
+                                                artsit:
+                                                    musicAddCollection.artist,
+                                                trackName: musicAddCollection
+                                                    .trackName,
+                                                trackImage: musicAddCollection
+                                                    .trackImage,
+                                                musicUrl:
+                                                    musicAddCollection.musicUrl,
+                                                name: musicAddCollection
+                                                    .musicUrl.length,
+                                              );
+                                              final home =
+                                                  HomeAudio(musics: my);
+                                              final docRef = db
+                                                  .collection("user")
+                                                  .withConverter(
+                                                    fromFirestore: (snapshot,
+                                                            options) =>
                                                         HomeAudio.fromJson(
                                                             snapshot.data()!),
-                                                toFirestore:
-                                                    (HomeAudio home, options) =>
-                                                        home.toJson(),
-                                              )
-                                              .doc("My musics");
-                                          docRef.set(home);
-                                        }));
+                                                    toFirestore:
+                                                        (HomeAudio home,
+                                                                options) =>
+                                                            home.toJson(),
+                                                  )
+                                                  .doc("Musics");
+                                              docRef.set(home);
+                                            }
+                                          });
+                                        }
+                                      });
+                                    }
+                                  }
+                                }
+                                final myTrack = TrackNameAdd(
+                                  trackName: addMusicsTrack,
+                                  name: addMusicsTrack.length,
+                                );
+                                final docRef = db
+                                    .collection("user")
+                                    .withConverter(
+                                      fromFirestore: (snapshot, options) =>
+                                          TrackNameAdd.fromJson(
+                                              snapshot.data()!),
+                                      toFirestore:
+                                          (TrackNameAdd home, options) =>
+                                              home.toJson(),
+                                    )
+                                    .doc("Track");
+                                docRef.set(myTrack);
                               }
 
                               /** 
